@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>散布圖與趨勢線</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
+    <style>
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            text-align: center;
+        }
+        #inputArea {
+            margin-bottom: 20px;
+        }
+        input {
+            margin: 5px;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="inputArea">
+            <h2>輸入 X 和 Y 座標</h2>
+            <input type="number" id="xInput" placeholder="X 座標">
+            <input type="number" id="yInput" placeholder="Y 座標">
+            <button onclick="addPoint()">添加點</button>
+            <button onclick="clearPoints()">清除所有點</button>
+        </div>
+        <canvas id="scatterChart"></canvas>
+    </div>
+
+    <script>
+        let points = [];
+        const ctx = document.getElementById('scatterChart').getContext('2d');
+        let chart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: '數據點',
+                    data: points,
+                    backgroundColor: 'blue'
+                }, {
+                    label: '趨勢線',
+                    type: 'line',
+                    data: [],
+                    borderColor: 'red',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        function addPoint() {
+            const x = parseFloat(document.getElementById('xInput').value);
+            const y = parseFloat(document.getElementById('yInput').value);
+            
+            if (!isNaN(x) && !isNaN(y)) {
+                points.push({x: x, y: y});
+                updateChart();
+                document.getElementById('xInput').value = '';
+                document.getElementById('yInput').value = '';
+            }
+        }
+
+        function clearPoints() {
+            points = [];
+            updateChart();
+        }
+
+        function updateChart() {
+            // 計算趨勢線
+            if (points.length > 1) {
+                const result = regression.linear(points.map(p => [p.x, p.y]));
+                const linePoints = [];
+                const xValues = points.map(p => p.x);
+                const minX = Math.min(...xValues);
+                const maxX = Math.max(...xValues);
+                
+                linePoints.push({x: minX, y: result.predict(minX)[1]});
+                linePoints.push({x: maxX, y: result.predict(maxX)[1]});
+                
+                chart.data.datasets[1].data = linePoints;
+                chart.data.datasets[1].label = `趨勢線: y = ${result.equation[0].toFixed(2)}x + ${result.equation[1].toFixed(2)}`;
+            } else {
+                chart.data.datasets[1].data = [];
+                chart.data.datasets[1].label = '趨勢線';
+            }
+
+            chart.data.datasets[0].data = points;
+            chart.update();
+        }
+    </script>
+</body>
+</html> 
