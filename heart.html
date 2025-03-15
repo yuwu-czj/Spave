@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳動的愛心</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f0f0f0;
+        }
+        canvas {
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="heartCanvas" width="400" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        let time = 0;
+        let scale = 1;
+        
+        function drawHeart(x, y, size) {
+            ctx.beginPath();
+            const points = [];
+            for (let i = 0; i < Math.PI * 2; i += 0.1) {
+                const t = i;
+                const x1 = 16 * Math.pow(Math.sin(t), 3);
+                const y1 = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                points.push({x: x1 * -size, y: y1 * -size});
+            }
+            
+            // 繪製點點圖案
+            for (let point of points) {
+                const randomOffset = Math.random() * 2;
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                ctx.beginPath();
+                ctx.arc(x + point.x, y + point.y, 2 + randomOffset, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 計算心跳效果
+            time += 0.05;
+            scale = 1 + Math.sin(time) * 0.1;
+            
+            // 在畫布中心繪製愛心
+            drawHeart(canvas.width / 2, canvas.height / 2, 8 * scale);
+            
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html> 

@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咪咪演奏系統</title>
+    <style>
+        body {
+            font-family: '微軟正黑體', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .score-section {
+            flex: 1.5;
+            padding-right: 10px;
+            max-width: none;
+            min-width: 300px;
+        }
+        .control-section {
+            flex: 0.8;
+            padding-left: 15px;
+            padding-right: 15px;
+            border-left: 1px solid #eee;
+            min-width: 280px;
+        }
+        #score {
+            width: 100%;
+            min-height: 400px;
+            margin: 20px 0;
+            text-align: center;
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #score img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .button-group {
+            width: 100%;
+            max-width: 250px;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .create-button {
+            width: 100%;
+            background: #2196F3;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            padding: 12px 24px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .create-button:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .create-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading {
+            color: #666;
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .music-info {
+            max-width: 250px;
+            margin: 20px auto;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 5px;
+        }
+        .animation-section {
+            flex: 1;
+            position: relative;
+            height: 600px;
+            background: linear-gradient(to bottom, #0a1527, #1a3c6e);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-left: 15px;
+            border-left: 1px solid #eee;
+        }
+        .scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+            display: block !important;
+            pointer-events: none;
+        }
+        .scene.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        #defaultScene {
+            background: linear-gradient(to bottom, #0a1527, #1a3c6e);
+            opacity: 1;
+            visibility: visible;
+        }
+        .waves {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            bottom: 0;
+        }
+        .moving-moon {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: inset -15px -15px 40px rgba(0,0,0,0.5),
+                        0 0 20px rgba(255,255,255,0.3);
+            animation: moonMove 15s linear infinite;
+            z-index: 2;
+        }
+        @keyframes moonMove {
+            0% { 
+                left: -40px;
+                top: 50px;
+                transform: scale(1);
+            }
+            25% {
+                transform: scale(1.1);
+                filter: brightness(1.2);
+            }
+            50% {
+                top: 30px;
+                transform: scale(1);
+            }
+            75% {
+                transform: scale(1.1);
+                filter: brightness(1.2);
+            }
+            100% { 
+                left: calc(100% + 40px);
+                top: 50px;
+                transform: scale(1);
+            }
+        }
+        .wave {
+            position: absolute;
+            width: 200%;
+            height: 200px;
+            background: linear-gradient(to bottom, transparent, rgba(0, 51, 102, 0.8));
+            border-radius: 50%;
+            left: -50%;
+            animation: waveMove infinite linear;
+        }
+        .wave:nth-child(1) {
+            bottom: 25%;
+            opacity: 0.8;
+            height: 180px;
+            animation-duration: 7s;
+        }
+        .wave:nth-child(2) {
+            bottom: 15%;
+            opacity: 0.6;
+            height: 200px;
+            animation-duration: 11s;
+        }
+        .wave:nth-child(3) {
+            bottom: 5%;
+            opacity: 0.4;
+            height: 220px;
+            animation-duration: 13s;
+        }
+        @keyframes waveMove {
+            0% {
+                transform: translateX(0) rotate(0deg);
+            }
+            100% {
+                transform: translateX(-50%) rotate(180deg);
+            }
+        }
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #fff;
+            border-radius: 50%;
+            animation: starTwinkle 2s infinite alternate;
+        }
+        .sun {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: #FFA500;
+            border-radius: 50%;
+            box-shadow: 0 0 60px #FFD700;
+            animation: sunPulse 3s infinite alternate;
+        }
+        .sun-rays {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            transform: translate(-50%, -50%);
+        }
+        .ray {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 140px;
+            background: #FFD700;
+            transform-origin: bottom center;
+            animation: rayGlow 2s infinite alternate;
+        }
+        .ray:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg); }
+        .ray:nth-child(2) { transform: translate(-50%, -50%) rotate(30deg); }
+        .ray:nth-child(3) { transform: translate(-50%, -50%) rotate(60deg); }
+        .ray:nth-child(4) { transform: translate(-50%, -50%) rotate(90deg); }
+        .ray:nth-child(5) { transform: translate(-50%, -50%) rotate(120deg); }
+        .ray:nth-child(6) { transform: translate(-50%, -50%) rotate(150deg); }
+        .ray:nth-child(7) { transform: translate(-50%, -50%) rotate(180deg); }
+        .ray:nth-child(8) { transform: translate(-50%, -50%) rotate(210deg); }
+        .ray:nth-child(9) { transform: translate(-50%, -50%) rotate(240deg); }
+        .ray:nth-child(10) { transform: translate(-50%, -50%) rotate(270deg); }
+        .ray:nth-child(11) { transform: translate(-50%, -50%) rotate(300deg); }
+        .ray:nth-child(12) { transform: translate(-50%, -50%) rotate(330deg); }
+        @keyframes sunPulse {
+            0% { 
+                transform: translate(-50%, -50%) scale(1);
+                box-shadow: 0 0 60px #FFD700;
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(1.1);
+                box-shadow: 0 0 100px #FFD700;
+            }
+        }
+        @keyframes rayGlow {
+            0% { opacity: 0.3; height: 120px; }
+            100% { opacity: 1; height: 140px; }
+        }
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .input-field {
+            width: 100%;
+            max-width: 250px;
+            margin: 0 auto;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        .input-field:focus {
+            border-color: #2196F3;
+            outline: none;
+        }
+        .range-container {
+            width: 100%;
+            max-width: 250px;
+            margin: 0 auto;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .range-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2196F3;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .range-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2196F3;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .range-slider::-ms-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2196F3;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .range-slider:hover {
+            opacity: 1;
+        }
+        .range-slider:active::-webkit-slider-thumb {
+            transform: scale(1.2);
+        }
+        .range-value {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .input-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .video-container {
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+        .video-container.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 15px;
+        }
+        .fire-animation {
+            background: linear-gradient(to bottom, #000000, #1a0f00);
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        .flame-container {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+        }
+        .flame {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #ff4500, #ff8c00);
+            border-radius: 50% 0 50% 50%;
+            filter: blur(5px);
+            animation: flameAnimation 2s infinite;
+            mix-blend-mode: screen;
+        }
+        .flame:nth-child(2) {
+            left: 30%;
+            animation-delay: 0.3s;
+            transform: translateX(-50%) scale(0.8);
+        }
+        .flame:nth-child(3) {
+            left: 70%;
+            animation-delay: 0.5s;
+            transform: translateX(-50%) scale(0.9);
+        }
+        @keyframes flameAnimation {
+            0% {
+                transform: translateX(-50%) rotate(-45deg) scale(1);
+                opacity: 0.8;
+                background: linear-gradient(45deg, #ff4500, #ff8c00);
+            }
+            50% {
+                transform: translateX(-50%) rotate(-30deg) scale(1.2);
+                opacity: 1;
+                background: linear-gradient(45deg, #ff6b00, #ffaa00);
+            }
+            100% {
+                transform: translateX(-50%) rotate(-45deg) scale(1);
+                opacity: 0.8;
+                background: linear-gradient(45deg, #ff4500, #ff8c00);
+            }
+        }
+        .night-sky {
+            background: linear-gradient(to bottom, #0a192f, #20314f);
+        }
+        .rain-animation {
+            background: linear-gradient(to bottom, #0a0a1a, #1a1a2e);
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .umbrella {
+            position: absolute;
+            bottom: 35%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 140px;
+            z-index: 2;
+        }
+        .umbrella-top {
+            position: absolute;
+            width: 140px;
+            height: 70px;
+            background: #222;
+            border-radius: 70px 70px 0 0;
+            transform-origin: bottom center;
+            animation: umbrellaSwing 4s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+        .umbrella-handle {
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            width: 3px;
+            height: 60px;
+            background: #333;
+            transform: translateX(-50%);
+        }
+        .raindrop {
+            position: absolute;
+            width: 1px;
+            height: 15px;
+            background: linear-gradient(transparent, rgba(255,255,255,0.6));
+            animation: rainFall linear infinite;
+            z-index: 1;
+            pointer-events: none;
+            will-change: transform;
+        }
+        @keyframes umbrellaSwing {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+        @keyframes rainFall {
+            0% {
+                transform: translateY(-120%) rotate(15deg);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(1000%) rotate(15deg);
+                opacity: 0;
+            }
+        }
+        .fog {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.02);
+            filter: blur(5px);
+            animation: fogMove 8s infinite linear;
+        }
+        @keyframes fogMove {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-top: -10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-style: italic;
+            position: relative;
+            padding-bottom: 15px;
+            max-width: 250px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .subtitle::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #2196F3, transparent);
+        }
+        h1, .subtitle {
+            text-align: center;
+            color: #1976D2;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #1976D2, #2196F3);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-fill-color: transparent;
+            padding-bottom: 5px;
+        }
+        .shooting-star {
+            width: 4px;
+            height: 4px;
+            background: linear-gradient(45deg, rgba(255,255,255,0), #ffffff 50%, rgba(255,255,255,0));
+            animation: shootingStar 2s linear infinite;
+        }
+        @keyframes shootingStar {
+            0% {
+                transform: translate(120%, -120%) rotate(45deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-120%, 120%) rotate(45deg);
+                opacity: 0;
+            }
+        }
+        .moon {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 100px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: inset -25px -25px 50px rgba(0,0,0,0.5),
+                        0 0 50px rgba(255,255,255,0.3);
+            animation: moonGlow 4s infinite alternate;
+        }
+        @keyframes moonGlow {
+            0% { box-shadow: inset -25px -25px 50px rgba(0,0,0,0.5),
+                            0 0 30px rgba(255,255,255,0.3); }
+            100% { box-shadow: inset -25px -25px 50px rgba(0,0,0,0.5),
+                            0 0 70px rgba(255,255,255,0.5); }
+        }
+        .message-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .message-text {
+            color: #ff0000;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            animation: floatText 3s ease-in-out;
+            white-space: nowrap;
+        }
+        .cat-peek {
+            position: fixed;
+            right: -200px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none;
+            z-index: 1000;
+        }
+        .cat-peek .cat-image {
+            width: 180px;
+            height: 180px;
+            background: url('../static/images/black-cat.png') no-repeat;
+            background-size: contain;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+            animation: eyeGlisten 2s infinite alternate;
+        }
+        .cat-peek .cat-message {
+            color: #003366;
+            font-size: 18px;
+            margin-top: 10px;
+            text-align: center;
+            white-space: nowrap;
+            background-color: rgba(255, 223, 186, 0.9);
+            padding: 8px 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .orange-cat {
+            position: fixed;
+            bottom: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            z-index: 1000;
+        }
+        .orange-cat .cat-image {
+            width: 180px;
+            height: 180px;
+            background: url('../static/images/orange-cat.png') no-repeat;
+            background-size: contain;
+            transform-origin: bottom center;
+            animation: confidentBounce 1s ease-out;
+        }
+        .orange-cat .cat-message {
+            color: #ff6b00;
+            font-size: 18px;
+            margin-top: 10px;
+            text-align: center;
+            white-space: nowrap;
+            background-color: rgba(255, 250, 240, 0.9);
+            padding: 8px 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        @keyframes eyeGlisten {
+            0% {
+                filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+            }
+            100% {
+                filter: drop-shadow(0 0 15px rgba(255,255,255,0.5));
+            }
+        }
+        @keyframes confidentBounce {
+            0% {
+                transform: scale(0.8) translateY(20px);
+            }
+            50% {
+                transform: scale(1.1) translateY(-10px);
+            }
+            100% {
+                transform: scale(1) translateY(0);
+            }
+        }
+        @keyframes peekIn {
+            0% {
+                right: -200px;
+                opacity: 0;
+                transform: translateY(-50%) scale(0.8);
+            }
+            20% {
+                right: 20px;
+                opacity: 1;
+                transform: translateY(-50%) scale(1);
+            }
+            70% {
+                right: 20px;
+                opacity: 1;
+                transform: translateY(-50%) scale(1);
+            }
+            100% {
+                right: -200px;
+                opacity: 0;
+                transform: translateY(-50%) scale(0.8);
+            }
+        }
+        @keyframes jumpUp {
+            0% {
+                bottom: -200px;
+                opacity: 0;
+                transform: translateX(-50%) scale(0.8);
+            }
+            20% {
+                bottom: 20px;
+                opacity: 1;
+                transform: translateX(-50%) scale(1);
+            }
+            70% {
+                bottom: 20px;
+                opacity: 1;
+                transform: translateX(-50%) scale(1);
+            }
+            100% {
+                bottom: -200px;
+                opacity: 0;
+                transform: translateX(-50%) scale(0.8);
+            }
+        }
+        .create-button[style*="display: none"] + .create-button {
+            margin-top: 0;
+        }
+        .create-button {
+            transition: opacity 0.5s ease-out, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        #lyricalAnimation {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: linear-gradient(to bottom, #0a0a1a, #1a1a2e);
+        }
+        #lyricalAnimation video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #lyricalAnimation.active video {
+            opacity: 1;
+        }
+        .rain-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        .score-chart {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            border: 1px solid #eee;
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .active-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ff4444;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            transform: translate(-50%, 50%);
+            z-index: 3;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        .axis-label {
+            position: absolute;
+            font-size: 12px;
+            color: #666;
+            transition: opacity 0.5s ease;
+        }
+        .x-axis {
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .y-axis {
+            left: 5px;
+            top: 50%;
+            transform: rotate(-90deg) translateX(50%);
+            transform-origin: left center;
+        }
+        .download-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 5;
+        }
+        .download-button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .active-line {
+            display: none;
+        }
+        .create-button, .music-info {
+            transition: opacity 0.5s ease-out, transform 0.3s ease, box-shadow 0.3s ease, display 0.5s ease;
+        }
+        #durationValue {
+            transition: color 0.3s ease;
+        }
+        .range-slider {
+            transition: background 0.3s ease;
+        }
+        /* 當秒數接近最大值時的特效 */
+        .range-slider::-webkit-slider-thumb {
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+        .range-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        /* 添加警告效果 */
+        @keyframes warningPulse {
+            0% { color: #666; }
+            50% { color: #ff4444; }
+            100% { color: #666; }
+        }
+        .warning {
+            animation: warningPulse 2s infinite;
+        }
+        .chart-grid {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+        }
+        .grid-line {
+            border-right: 1px solid rgba(102, 102, 102, 0.1);
+            border-bottom: 1px solid rgba(102, 102, 102, 0.1);
+        }
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .download-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            width: fit-content;
+        }
+        .download-button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="score-section">
+            <div id="score">
+                <!-- 樂譜圖片將在這裡顯示 -->
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h1>音樂創作系統</h1>
+            <div class="subtitle">
+                全程由 AI 智能生成，打造專屬於您的影音世界
+            </div>
+            
+            <div class="input-group">
+                <div>
+                    <label class="input-label" for="theme">樂曲主題</label>
+                    <input 
+                        type="text" 
+                        id="theme" 
+                        class="input-field" 
+                        placeholder="請輸入樂曲主題（如：春天、海洋、森林）"
+                    >
+                </div>
+                
+                <div class="range-container">
+                    <label class="input-label" for="duration">樂曲長度（秒）</label>
+                    <input 
+                        type="range" 
+                        id="duration" 
+                        class="range-slider" 
+                        min="25" 
+                        max="120" 
+                        step="1"
+                        value="60"
+                    >
+                    <div class="range-value">
+                        當前長度：<span id="durationValue">60</span> 秒
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="create-button" onclick="createMusic('random')">喵~~凹凹~~~</button>
+                <button class="create-button" onclick="createMusic('lyrical')">喵~~凹~嗚~</button>
+                <button class="create-button" onclick="createMusic('energetic')">喵!凹!</button>
+            </div>
+
+            <div id="loading" class="loading">
+                生成樂譜中...
+            </div>
+
+            <div class="music-info">
+                <h3>樂曲分析</h3>
+                <p id="musicStyle"></p>
+                <p id="musicStructure"></p>
+                <p id="musicTheme"></p>
+                <p id="musicDuration"></p>
+            </div>
+        </div>
+
+        <div class="animation-section">
+            <div class="scene" id="defaultScene">
+                <div class="stars"></div>
+                <div class="moving-moon"></div>
+                <div class="waves">
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                </div>
+            </div>
+            <div class="scene" id="randomAnimation">
+                <video loop muted>
+                    <source src="/static/videos/專案 03-15_Full HD 1080p.mp4" type="video/mp4">
+                </video>
+            </div>
+            <div class="scene" id="energeticAnimation">
+                <div class="flame-container">
+                    <div class="flame"></div>
+                    <div class="flame"></div>
+                    <div class="flame"></div>
+                </div>
+            </div>
+            <div class="scene" id="lyricalAnimation">
+                <video loop>
+                    <source src="C:/Project/b26560d4-2762-49ea-b1a9-d78d2766d4f8.mp4" type="video/mp4">
+                </video>
+                <div class="rain-container">
+                    <div class="umbrella">
+                        <div class="umbrella-top"></div>
+                        <div class="umbrella-handle"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="message-overlay" id="messageOverlay">
+        <div class="message-text"></div>
+    </div>
+
+    <div class="cat-peek" id="catPeek">
+        <div class="cat-image"></div>
+        <div class="cat-message"></div>
+    </div>
+
+    <div class="orange-cat" id="orangeCat">
+        <div class="cat-image"></div>
+        <div class="cat-message"></div>
+    </div>
+
+    <script>
+        // 修改滑桿的事件監聽器
+        window.addEventListener('load', function() {
+            const slider = document.getElementById('duration');
+            const durationValue = document.getElementById('durationValue');
+            
+            // 確保滑桿的初始值正確顯示
+            durationValue.textContent = slider.value;
+            
+            // 添加事件監聽
+            slider.addEventListener('input', function() {
+                const duration = parseInt(this.value);
+                durationValue.textContent = duration;
+                
+                // 更新警告效果
+                if (duration > 100) {
+                    durationValue.classList.add('warning');
+                } else {
+                    durationValue.classList.remove('warning');
+                }
+                
+                // 更新按鈕和音樂信息的透明度
+                const maxDuration = 120;
+                const opacity = 1 - (duration / maxDuration);
+                
+                const buttons = document.querySelectorAll('.create-button');
+                const musicInfo = document.querySelector('.music-info');
+                
+                buttons.forEach(button => {
+                    button.style.opacity = opacity;
+                    button.style.pointerEvents = opacity <= 0 ? 'none' : 'auto';
+                });
+                
+                musicInfo.style.opacity = opacity;
+                
+                // 當達到最大秒數時的處理
+                if (duration >= maxDuration) {
+                    setTimeout(() => {
+                        buttons.forEach(button => button.style.display = 'none');
+                        musicInfo.style.display = 'none';
+                    }, 500);
+                    showMessage("時間已到極限，喵喵已經累了~");
+                }
+            });
+        });
+
+        // 添加一個變量來記錄第一次點擊的時間
+        let startTime = null;
+
+        function createMusic(style) {
+            const scoreDiv = document.getElementById('score');
+            const currentTime = new Date().getTime() / 1000;
+            const duration = parseInt(document.getElementById('duration').value);
+            const theme = document.getElementById('theme').value;
+            
+            if (startTime === null) {
+                startTime = currentTime;
+                
+                // 創建圖表容器包裝元素
+                const chartWrapper = document.createElement('div');
+                chartWrapper.className = 'chart-container';
+                
+                // 創建圖表容器
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'score-chart';
+                
+                // 添加網格
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'chart-grid';
+                for (let i = 0; i < 100; i++) {
+                    const gridLine = document.createElement('div');
+                    gridLine.className = 'grid-line';
+                    gridContainer.appendChild(gridLine);
+                }
+                chartContainer.appendChild(gridContainer);
+                
+                // 添加座標軸標籤（初始隱藏）
+                const xAxisLabel = document.createElement('div');
+                xAxisLabel.className = 'axis-label x-axis';
+                xAxisLabel.textContent = '實際經過時間（秒）';
+                xAxisLabel.style.opacity = '0';
+                chartContainer.appendChild(xAxisLabel);
+                
+                const yAxisLabel = document.createElement('div');
+                yAxisLabel.className = 'axis-label y-axis';
+                yAxisLabel.textContent = '滑桿秒數 × 按鈕位置';
+                yAxisLabel.style.opacity = '0';
+                chartContainer.appendChild(yAxisLabel);
+                
+                // 將圖表容器添加到包裝元素中
+                chartWrapper.appendChild(chartContainer);
+                
+                // 清空 score div 並添加包裝元素
+                scoreDiv.innerHTML = '';
+                scoreDiv.appendChild(chartWrapper);
+            }
+            
+            // X軸：計算從開始到現在經過的秒數
+            const elapsedSeconds = Math.floor(currentTime - startTime);
+            
+            // 根據按鈕類型設置 y 軸基準值
+            let baseY;
+            switch(style) {
+                case 'random':
+                    baseY = 2;
+                    break;
+                case 'lyrical':
+                    baseY = 3;
+                    break;
+                case 'energetic':
+                    baseY = 1;
+                    break;
+            }
+            
+            // Y軸：使用滑桿的秒數 * 按鈕數值
+            const yPosition = duration * baseY;
+            
+            // 添加新點到圖表
+            addPointToChart(elapsedSeconds, yPosition);
+            
+            // 更新音樂信息顯示
+            updateMusicInfo(style, theme, duration);
+            
+            // 切換動畫
+            switchAnimation(style);
+            
+            // 顯示原始的提示文字
+            switch(style) {
+                case 'random':
+                    showMessage("救命啊，這是什麼貓不生娃的地方");
+                    break;
+                case 'lyrical':
+                    showPeekingCat("好餓喵!看看我咪~陪我玩咪咪");
+                    break;
+                case 'energetic':
+                    showOrangeCat("哈囉咪!好新鮮凹!");
+                    playRandomMusic();
+                    break;
+            }
+        }
+
+        // 添加重置圖表的函數
+        function resetChart() {
+            startTime = null;
+            const scoreDiv = document.getElementById('score');
+            scoreDiv.innerHTML = '';
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'score-chart';
+            
+            // 添加網格
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'chart-grid';
+            for (let i = 0; i < 100; i++) {
+                const gridLine = document.createElement('div');
+                gridLine.className = 'grid-line';
+                gridContainer.appendChild(gridLine);
+            }
+            chartContainer.appendChild(gridContainer);
+            
+            // 重新添加座標軸標籤
+            const xAxisLabel = document.createElement('div');
+            xAxisLabel.className = 'axis-label x-axis';
+            xAxisLabel.textContent = '實際經過時間（秒）';
+            chartContainer.appendChild(xAxisLabel);
+            
+            const yAxisLabel = document.createElement('div');
+            yAxisLabel.className = 'axis-label y-axis';
+            yAxisLabel.textContent = '滑桿秒數 × 按鈕位置';
+            chartContainer.appendChild(yAxisLabel);
+            
+            // 重新添加重置按鈕
+            const resetButton = document.createElement('button');
+            resetButton.className = 'reset-button';
+            resetButton.textContent = '重置圖表';
+            resetButton.onclick = resetChart;
+            chartContainer.appendChild(resetButton);
+            
+            scoreDiv.appendChild(chartContainer);
+        }
+
+        function generateChartPoints(count) {
+            const points = [];
+            for (let i = 0; i < count; i++) {
+                points.push({
+                    x: (i / (count - 1)) * 100,
+                    y: Math.random() * 60 + 20 // 20-80 範圍內的隨機值
+                });
+            }
+            return points;
+        }
+
+        function createChartLine(start, end, index) {
+            const line = document.createElement('div');
+            line.className = 'chart-line';
+            
+            // 計算線的長度和角度
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            
+            // 設置線的樣式
+            line.style.left = `${start.x}%`;
+            line.style.bottom = `${start.y}%`;
+            line.style.width = `${length}%`;
+            line.style.transform = `rotate(${angle}deg)`;
+            line.style.transformOrigin = 'left bottom';
+            line.style.animationDelay = `${index * 0.1}s`;
+            
+            return line;
+        }
+
+        function createChartPoint(point, index) {
+            const dot = document.createElement('div');
+            dot.className = 'chart-point';
+            dot.style.left = `${point.x}%`;
+            dot.style.bottom = `${point.y}%`;
+            dot.style.animationDelay = `${index * 0.1}s`;
+            return dot;
+        }
+
+        function createRaindrops() {
+            const rainAnimation = document.querySelector('.rain-animation');
+            if (!rainAnimation || !rainAnimation.classList.contains('active')) return;
+
+            const existingRaindrops = rainAnimation.querySelectorAll('.raindrop');
+            if (existingRaindrops.length > 150) {
+                // 移除最舊的雨滴
+                existingRaindrops[0].remove();
+            }
+
+            const raindrop = document.createElement('div');
+            raindrop.className = 'raindrop';
+            raindrop.style.left = `${Math.random() * 100}%`;
+            raindrop.style.animationDuration = `${0.8 + Math.random() * 0.6}s`;
+            raindrop.style.opacity = `${0.3 + Math.random() * 0.7}`;
+            
+            // 使用 DocumentFragment 提升性能
+            const fragment = document.createDocumentFragment();
+            fragment.appendChild(raindrop);
+            rainAnimation.appendChild(fragment);
+
+            // 自動清理完成動畫的雨滴
+            raindrop.addEventListener('animationend', () => {
+                raindrop.remove();
+            }, { once: true });
+
+            // 持續生成新雨滴
+            if (rainAnimation.classList.contains('active')) {
+                requestAnimationFrame(() => {
+                    if (Math.random() > 0.7) {
+                        createRaindrops();
+                    }
+                });
+            }
+        }
+
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            const starCount = 30;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 60}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                starsContainer.appendChild(star);
+            }
+        }
+
+        function switchAnimation(style) {
+            const scenes = document.querySelectorAll('.scene');
+            const currentActive = document.querySelector('.scene.active');
+            
+            // 移除當前活動場景
+            if (currentActive) {
+                currentActive.classList.remove('active');
+            }
+
+            // 停止所有視頻播放
+            document.querySelectorAll('video').forEach(video => {
+                video.pause();
+                video.currentTime = 0;
+            });
+
+            // 設置新的活動場景
+            let targetScene;
+            switch(style) {
+                case 'lyrical':
+                    targetScene = document.getElementById('lyricalAnimation');
+                    const lyricalVideo = targetScene.querySelector('video');
+                    if (lyricalVideo) {
+                        // 先添加 active 類
+                        targetScene.classList.add('active');
+                        
+                        // 重置視頻
+                        lyricalVideo.currentTime = 0;
+                        lyricalVideo.style.opacity = '1';
+                        
+                        // 確保視頻已加載
+                        lyricalVideo.load();
+                        
+                        // 播放視頻
+                        const playPromise = lyricalVideo.play();
+                        if (playPromise !== undefined) {
+                            playPromise.then(() => {
+                                console.log('視頻開始播放');
+                                
+                                // 5秒後淡出視頻並隱藏按鈕
+                                setTimeout(() => {
+                                    // 淡出視頻
+                                    lyricalVideo.style.opacity = '0';
+                                    
+                                    // 隱藏按鈕
+                                    const buttons = document.querySelectorAll('.create-button');
+                                    buttons.forEach(button => {
+                                        if (button.textContent === '喵~~凹~嗚~') {
+                                            button.style.transition = 'opacity 0.5s ease-out';
+                                            button.style.opacity = '0';
+                                            setTimeout(() => {
+                                                button.style.display = 'none';
+                                            }, 500);
+                                        }
+                                    });
+                                    
+                                    // 1秒後切換回默認場景
+                                    setTimeout(() => {
+                                        lyricalVideo.pause();
+                                        targetScene.classList.remove('active');
+                                        document.getElementById('defaultScene').classList.add('active');
+                                    }, 1000);
+                                }, 5000);
+                            }).catch(error => {
+                                console.error('視頻播放失敗:', error);
+                                // 如果視頻播放失敗，顯示錯誤信息
+                                showMessage("視頻播放失敗，請重試");
+                            });
+                        }
+                    }
+                    break;
+                case 'random':
+                    targetScene = document.getElementById('randomAnimation');
+                    const randomVideo = targetScene.querySelector('video');
+                    if (randomVideo) {
+                        randomVideo.play().catch(err => console.log('視頻播放失敗:', err));
+                    }
+                    break;
+                case 'energetic':
+                    targetScene = document.getElementById('energeticAnimation');
+                    break;
+                default:
+                    targetScene = document.getElementById('defaultScene');
+            }
+
+            if (targetScene) {
+                targetScene.classList.add('active');
+            }
+        }
+
+        // 修改頁面載入時的行為
+        window.onload = function() {
+            const scoreDiv = document.getElementById('score');
+            // 創建初始的空白折線圖
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'score-chart';
+            
+            // 添加網格
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'chart-grid';
+            for (let i = 0; i < 100; i++) {
+                const gridLine = document.createElement('div');
+                gridLine.className = 'grid-line';
+                gridContainer.appendChild(gridLine);
+            }
+            chartContainer.appendChild(gridContainer);
+            
+            scoreDiv.appendChild(chartContainer);
+            
+            // 預加載視頻
+            const video = document.querySelector('#randomAnimation video');
+            if (video) {
+                video.load();
+            }
+
+            // 創建星星
+            createStars();
+            
+            // 確保預設場景顯示
+            document.getElementById('defaultScene').style.display = 'block';
+            
+            // 預加載音頻文件
+            const musicFiles = [
+                '/static/music/cat_fantasy_0.mp3',
+                '/static/music/cat_fantasy_1.mp3',
+                '/static/music/cat_fantasy_2.mp3',
+                '/static/music/cat_fantasy_3.mp3'
+            ];
+            
+            musicFiles.forEach(file => {
+                const audio = new Audio();
+                audio.preload = 'auto';
+                audio.src = file;
+            });
+
+            // 預加載所有視頻
+            document.querySelectorAll('video').forEach(video => {
+                video.load();
+                // 添加錯誤處理
+                video.onerror = function() {
+                    console.error('視頻加載失敗:', video.src);
+                };
+            });
+
+            // 檢查初始秒數
+            const duration = parseInt(document.getElementById('duration').value);
+            const maxDuration = 120;
+            if (duration >= maxDuration) {
+                const buttons = document.querySelectorAll('.create-button');
+                const musicInfo = document.querySelector('.music-info');
+                
+                buttons.forEach(button => {
+                    button.style.opacity = 0;
+                    button.style.pointerEvents = 'none';
+                });
+                
+                musicInfo.style.opacity = 0;
+            }
+            
+            // 當秒數超過 100 時添加警告效果
+            const durationValue = document.getElementById('durationValue');
+            if (duration > 100) {
+                durationValue.classList.add('warning');
+            }
+
+            // 重新排序按鈕
+            const buttonGroup = document.querySelector('.button-group');
+            const buttons = Array.from(buttonGroup.children);
+            
+            // 按照指定順序排序按鈕
+            const buttonOrder = {
+                'lyrical': 0,  // 喵~~凹~嗚~
+                'random': 1,   // 喵~~凹凹~~~
+                'energetic': 2 // 喵!凹!
+            };
+            
+            buttons.sort((a, b) => {
+                const aStyle = a.getAttribute('onclick').match(/'(\w+)'/)[1];
+                const bStyle = b.getAttribute('onclick').match(/'(\w+)'/)[1];
+                return buttonOrder[aStyle] - buttonOrder[bStyle];
+            });
+            
+            // 重新添加按鈕
+            buttonGroup.innerHTML = '';
+            buttons.forEach(button => buttonGroup.appendChild(button));
+        };
+
+        // 添加新的動畫函數
+        function showMessage(text) {
+            const overlay = document.getElementById('messageOverlay');
+            const messageText = overlay.querySelector('.message-text');
+            
+            messageText.textContent = text;
+            overlay.style.display = 'block';
+            messageText.style.animation = 'none';
+            messageText.offsetHeight; // 觸發重排
+            messageText.style.animation = 'floatText 3s ease-in-out';
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 3000);
+        }
+
+        function showPeekingCat(message) {
+            const catPeek = document.getElementById('catPeek');
+            const messageDiv = catPeek.querySelector('.cat-message');
+            
+            messageDiv.textContent = message;
+            catPeek.style.display = 'block';
+            catPeek.style.animation = 'none';
+            catPeek.offsetHeight; // 觸發重排
+            catPeek.style.animation = 'peekIn 3s ease-in-out forwards';
+            
+            setTimeout(() => {
+                catPeek.style.display = 'none';
+                catPeek.style.animation = '';
+            }, 3000);
+        }
+
+        function showOrangeCat(message) {
+            const orangeCat = document.getElementById('orangeCat');
+            const messageDiv = orangeCat.querySelector('.cat-message');
+            
+            messageDiv.textContent = message;
+            orangeCat.style.display = 'block';
+            orangeCat.style.animation = 'none';
+            orangeCat.offsetHeight; // 觸發重排
+            orangeCat.style.animation = 'jumpUp 3s ease-in-out forwards';
+            
+            setTimeout(() => {
+                orangeCat.style.display = 'none';
+                orangeCat.style.animation = '';
+            }, 3000);
+        }
+
+        // 音樂播放控制
+        const musicFiles = [
+            '/static/music/cat_fantasy_0.mp3',
+            '/static/music/cat_fantasy_1.mp3',
+            '/static/music/cat_fantasy_2.mp3',
+            '/static/music/cat_fantasy_3.mp3'
+        ];
+
+        let playedMusic = new Set();
+        let currentAudio = null;
+
+        function playRandomMusic() {
+            // 如果所有音樂都播放過了
+            if (playedMusic.size >= musicFiles.length) {
+                const buttons = document.querySelectorAll('.create-button');
+                buttons.forEach(button => {
+                    if (button.textContent === '喵!凹!') {
+                        // 淡出效果
+                        button.style.transition = 'opacity 0.5s ease-out';
+                        button.style.opacity = '0';
+                        setTimeout(() => {
+                            button.style.display = 'none';
+                        }, 500);
+                    }
+                });
+                
+                // 顯示完成消息
+                showMessage("我已玩完、旅行完了！");
+                return;
+            }
+
+            // 停止當前播放的音樂
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+
+            // 從未播放的音樂中隨機選擇
+            let availableMusic = musicFiles.filter(file => !playedMusic.has(file));
+            let randomIndex = Math.floor(Math.random() * availableMusic.length);
+            let selectedMusic = availableMusic[randomIndex];
+
+            // 創建新的音頻元素
+            currentAudio = new Audio(selectedMusic);
+            currentAudio.volume = 0.5; // 設置音量為 50%
+            
+            // 播放完成後的處理
+            currentAudio.onended = () => {
+                currentAudio = null;
+            };
+
+            // 記錄已播放的音樂
+            playedMusic.add(selectedMusic);
+
+            // 播放音樂
+            currentAudio.play().catch(err => console.log('音樂播放失敗:', err));
+        }
+
+        // 添加新函數來處理點的添加
+        function addPointToChart(x, y) {
+            const chartContainer = document.querySelector('.score-chart');
+            if (!chartContainer) return;
+            
+            // 修改座標計算方式
+            const xPercent = Math.min((x / 120) * 100, 100);
+            const yPercent = Math.min((y / 360) * 100, 100);
+            
+            // 創建新點
+            const newPoint = document.createElement('div');
+            newPoint.className = 'active-point';
+            newPoint.style.left = `${xPercent}%`;
+            newPoint.style.bottom = `${yPercent}%`;
+            
+            // 將點添加到圖表
+            chartContainer.appendChild(newPoint);
+            
+            // 檢查是否達到最右邊或最大秒數
+            const duration = parseInt(document.getElementById('duration').value);
+            if (xPercent >= 100 || duration >= 120) {
+                // 顯示座標軸說明
+                const axisLabels = chartContainer.querySelectorAll('.axis-label');
+                axisLabels.forEach(label => {
+                    label.style.opacity = '1';
+                });
+                
+                // 顯示下載按鈕
+                showDownloadButton(chartContainer);
+            }
+        }
+
+        // 修改顯示下載按鈕的函數
+        function showDownloadButton(container) {
+            const chartWrapper = container.parentElement;
+            if (chartWrapper.querySelector('.download-button')) return;
+            
+            const downloadButton = document.createElement('button');
+            downloadButton.className = 'download-button';
+            downloadButton.textContent = '下載散布圖';
+            downloadButton.onclick = downloadChart;
+            chartWrapper.appendChild(downloadButton);
+        }
+
+        // 修改下載圖表的函數
+        function downloadChart() {
+            const chartContainer = document.querySelector('.score-chart');
+            const theme = document.getElementById('theme').value || '未命名';
+            const timestamp = new Date().toISOString().slice(0, 10);
+            
+            html2canvas(chartContainer).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `喵音符_${theme}_${timestamp}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // 添加更新音樂信息的函數
+        function updateMusicInfo(style, theme, duration) {
+            const musicInfo = {
+                random: '隨機風格',
+                lyrical: '抒情風格',
+                energetic: '活力風格'
+            };
+            
+            document.getElementById('musicStyle').textContent = `風格：${musicInfo[style]}`;
+            document.getElementById('musicTheme').textContent = `主題：${theme || '未指定'}`;
+            document.getElementById('musicDuration').textContent = `長度：${duration} 秒`;
+        }
+    </script>
+</body>
+</html> 
