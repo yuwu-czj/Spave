@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.bubble {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.pop-image {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  pointer-events: all;
+  cursor: pointer;
+}
+.pop-image.folder {
+  width: 800px;
+  height: 800px;
+  z-index: 1000;
+  transition: all 0.3s ease-out;
+}
+.pop-image.vanish {
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
+}
+.pop-image.fade {
+  animation: float-up 2s ease-out forwards;
+}
+@keyframes float-up {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) scale(1);
+    opacity: 0;
+  }
+}
+body {
+  background: white;
+  margin: 0;
+  overflow: hidden;
+  height: 100vh;
+}
+</style>
+</head>
+<body>
+<script>
+const bubbleColors = [
+    'rgba(255, 0, 0, 0.1)',      // 紅
+    'rgba(255, 165, 0, 0.1)',    // 橙
+    'rgba(255, 255, 0, 0.1)',    // 黃
+    'rgba(0, 255, 0, 0.1)',      // 綠
+    'rgba(0, 0, 255, 0.1)',      // 藍
+    'rgba(238, 130, 238, 0.1)',  // 紫
+    'rgba(255, 192, 203, 0.1)',  // 粉
+    'rgba(0, 255, 255, 0.1)',    // 青
+    'rgba(255, 20, 147, 0.1)'    // 桃紅
+];
+
+const images = [
+    './images/image1.png',
+    './images/image2.png',
+    './images/image3.png',
+    './images/image4.png',
+    './images/image5.png',
+    './images/image6.png',
+    './images/image7.png',
+    './images/image8.png',
+    './images/image9.png'
+];
+
+const folderImages = [
+    './folderImages/folder1.png',
+    './folderImages/folder2.png',
+    './folderImages/folder3.png',
+    './folderImages/folder4.png',
+    './folderImages/folder5.png'
+];
+
+class Bubble {
+    constructor() {
+        this.element = document.createElement('div');
+        this.element.className = 'bubble';
+        const size = Math.random() * 70 + 30;
+        this.element.style.width = size + 'px';
+        this.element.style.height = size + 'px';
+        
+        const color = bubbleColors[Math.floor(Math.random() * bubbleColors.length)];
+        this.element.style.background = color;
+        this.element.style.border = `1px solid ${color.replace('0.1', '0.2')}`;
+        this.element.style.backgroundImage = 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0) 70%)';
+        
+        this.x = Math.random() * (window.innerWidth - size);
+        this.y = Math.random() * (window.innerHeight - size);
+        this.speedX = (Math.random() - 0.5) * 1;
+        this.speedY = (Math.random() - 0.5) * 1;
+        this.element.addEventListener('click', () => this.pop());
+        document.body.appendChild(this.element);
+    }
+    
+    pop() {
+        const img = document.createElement('img');
+        img.className = 'pop-image';
+        img.src = images[Math.floor(Math.random() * images.length)];
+        img.style.left = (this.x + this.element.offsetWidth/2 - 40) + 'px';
+        img.style.top = (this.y + this.element.offsetHeight/2 - 40) + 'px';
+        
+        if (Math.random() < 0.2) {
+            img.addEventListener('click', function() {
+                const centerX = (window.innerWidth - 800) / 2;
+                const centerY = (window.innerHeight - 800) / 2;
+                
+                this.style.width = '800px';
+                this.style.height = '800px';
+                this.style.left = centerX + 'px';
+                this.style.top = centerY + 'px';
+                
+                this.src = folderImages[Math.floor(Math.random() * folderImages.length)];
+                this.classList.add('folder');
+                
+                setTimeout(() => {
+                    this.classList.add('vanish');
+                    setTimeout(() => this.remove(), 500);
+                }, 3000);
+            });
+        } else {
+            img.classList.add('fade');
+            setTimeout(() => img.remove(), 2000);
+        }
+        
+        document.body.appendChild(img);
+        
+        this.element.remove();
+        const index = bubbles.indexOf(this);
+        if (index > -1) {
+            bubbles.splice(index, 1);
+        }
+    }
+    
+    move() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x <= 0 || this.x >= window.innerWidth - this.element.offsetWidth) {
+            this.speedX *= -1;
+        }
+        if (this.y <= 0 || this.y >= window.innerHeight - this.element.offsetHeight) {
+            this.speedY *= -1;
+        }
+        this.element.style.left = this.x + 'px';
+        this.element.style.top = this.y + 'px';
+    }
+}
+
+const bubbles = [];
+const initialBubbles = Math.floor(Math.random() * 11) + 10;
+for(let i = 0; i < initialBubbles; i++) {
+    bubbles.push(new Bubble());
+}
+
+setInterval(() => {
+    if (bubbles.length < 5) {
+        bubbles.push(new Bubble());
+    }
+    else if (Math.random() < 0.3) {
+        if (bubbles.length < 30) {
+            bubbles.push(new Bubble());
+        }
+    }
+}, 5000);
+
+function animate() {
+    bubbles.forEach(bubble => bubble.move());
+    requestAnimationFrame(animate);
+}
+
+animate();
+
+window.addEventListener('resize', () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    bubbles.forEach(bubble => {
+        if (bubble.x > width - bubble.element.offsetWidth) bubble.x = width - bubble.element.offsetWidth;
+        if (bubble.y > height - bubble.element.offsetHeight) bubble.y = height - bubble.element.offsetHeight;
+    });
+});
+</script>
+</body>
+</html>
