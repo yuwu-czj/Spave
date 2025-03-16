@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>貓咪冒險</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            font-family: '微軟正黑體', Arial, sans-serif;
+        }
+        
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .cat {
+            width: 80px;
+            height: 80px;
+            position: absolute;
+            bottom: 100px;
+            left: 50px;
+            background-size: contain;
+            transition: transform 0.3s;
+            z-index: 100;
+        }
+        
+        .cat-orange {
+            background: url('static/images/cat-orange.png') no-repeat;
+            animation: walkOrange 0.6s steps(2) infinite;
+        }
+        
+        .cat-black {
+            background: url('static/images/cat-black.png') no-repeat;
+            animation: walkBlack 0.6s steps(2) infinite;
+        }
+        
+        .cat-white {
+            background: url('static/images/cat-white.png') no-repeat;
+            animation: walkWhite 0.6s steps(2) infinite;
+        }
+        
+        .platform {
+            position: absolute;
+            bottom: 50px;
+            height: 30px;
+            background: #8B4513;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .cloud {
+            position: absolute;
+            width: 100px;
+            height: 40px;
+            background: white;
+            border-radius: 20px;
+            animation: float 15s linear infinite;
+        }
+        
+        .cloud::before,
+        .cloud::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+        }
+        
+        .cloud::before {
+            width: 50px;
+            height: 50px;
+            top: -20px;
+            left: 15px;
+        }
+        
+        .cloud::after {
+            width: 30px;
+            height: 30px;
+            top: -10px;
+            left: 45px;
+        }
+        
+        .star {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: yellow;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            animation: twinkle 1s infinite;
+        }
+        
+        @keyframes walkOrange {
+            from { background-position: 0 0; }
+            to { background-position: -160px 0; }
+        }
+        
+        @keyframes walkBlack {
+            from { background-position: 0 0; }
+            to { background-position: -160px 0; }
+        }
+        
+        @keyframes walkWhite {
+            from { background-position: 0 0; }
+            to { background-position: -160px 0; }
+        }
+        
+        @keyframes walk {
+            from { background-position: 0 0; }
+            to { background-position: -120px 0; }
+        }
+        
+        @keyframes float {
+            from { transform: translateX(-150px); }
+            to { transform: translateX(calc(100vw + 150px)); }
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        .score {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            display: none;
+        }
+        
+        .character-select {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 1000;
+        }
+        
+        .character-option {
+            display: inline-block;
+            margin: 10px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .character-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .character-option img {
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            border: 3px solid transparent;
+        }
+        
+        .character-option.selected img {
+            border-color: #4CAF50;
+        }
+        
+        .character-name {
+            margin-top: 5px;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .start-button {
+            margin-top: 20px;
+            padding: 10px 30px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .start-button:hover {
+            background-color: #45a049;
+        }
+        
+        .cat-effect {
+            position: absolute;
+            pointer-events: none;
+            z-index: 90;
+        }
+        
+        .paw-print {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            animation: fade-out 1s forwards;
+        }
+        
+        @keyframes fade-out {
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="character-select" id="characterSelect">
+        <h2>選擇你的貓咪</h2>
+        <div class="character-option" data-cat="orange">
+            <img src="static/images/cat-orange.png" alt="橘貓">
+            <div class="character-name">橘貓</div>
+        </div>
+        <div class="character-option" data-cat="black">
+            <img src="static/images/cat-black.png" alt="黑貓">
+            <div class="character-name">黑貓</div>
+        </div>
+        <div class="character-option" data-cat="white">
+            <img src="static/images/cat-white.png" alt="白貓">
+            <div class="character-name">白貓</div>
+        </div>
+        <button class="start-button" id="startGame">開始冒險</button>
+    </div>
+
+    <div class="game-container">
+        <div class="cat"></div>
+        <div class="platform" style="width: 100%;"></div>
+        <div class="score">分數: <span id="scoreValue">0</span></div>
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        const cat = document.querySelector('.cat');
+        const gameContainer = document.querySelector('.game-container');
+        const scoreElement = document.getElementById('scoreValue');
+        const messageElement = document.getElementById('message');
+        const characterSelect = document.getElementById('characterSelect');
+        const startButton = document.getElementById('startGame');
+        
+        let isJumping = false;
+        let score = 0;
+        let gameActive = false;
+        let selectedCat = null;
+        
+        document.querySelectorAll('.character-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.character-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                option.classList.add('selected');
+                selectedCat = option.dataset.cat;
+            });
+        });
+        
+        startButton.addEventListener('click', () => {
+            if (!selectedCat) {
+                alert('請選擇一個貓咪角色！');
+                return;
+            }
+            
+            cat.className = `cat cat-${selectedCat}`;
+            
+            characterSelect.style.display = 'none';
+            
+            gameActive = true;
+            
+            createInitialClouds();
+        });
+        
+        function createPawPrint() {
+            if (!isJumping && gameActive) {
+                const pawPrint = document.createElement('div');
+                pawPrint.className = 'paw-print';
+                pawPrint.style.left = (parseInt(cat.style.left) || 50) + 30 + 'px';
+                pawPrint.style.bottom = '100px';
+                gameContainer.appendChild(pawPrint);
+
+                setTimeout(() => {
+                    pawPrint.remove();
+                }, 1000);
+            }
+        }
+        
+        function jump() {
+            if (!isJumping && gameActive) {
+                isJumping = true;
+                cat.style.transform = 'translateY(-150px) rotate(360deg)';
+                
+                playSound('jump');
+                
+                setTimeout(() => {
+                    cat.style.transform = 'translateY(0) rotate(0deg)';
+                    setTimeout(() => {
+                        isJumping = false;
+                    }, 300);
+                }, 500);
+                
+                score += 10;
+                scoreElement.textContent = score;
+                
+                if (score >= 100) {
+                    showVictoryMessage();
+                }
+            }
+        }
+        
+        const sounds = {
+            jump: new Audio('static/sounds/jump.mp3'),
+            victory: new Audio('static/sounds/victory.mp3')
+        };
+        
+        function playSound(soundName) {
+            if (sounds[soundName]) {
+                sounds[soundName].currentTime = 0;
+                sounds[soundName].play().catch(() => {});
+            }
+        }
+        
+        function showVictoryMessage() {
+            gameActive = false;
+            messageElement.textContent = `恭喜！${getCatName(selectedCat)}冒險成功！`;
+            messageElement.style.display = 'block';
+            playSound('victory');
+        }
+        
+        function getCatName(catType) {
+            const names = {
+                orange: '橘貓',
+                black: '黑貓',
+                white: '白貓'
+            };
+            return names[catType] || '貓咪';
+        }
+        
+        let catPosition = 50;
+        function moveCat() {
+            if (gameActive && !isJumping) {
+                catPosition += 2;
+                if (catPosition > window.innerWidth - 100) {
+                    catPosition = 50;
+                }
+                cat.style.left = catPosition + 'px';
+                createPawPrint();
+            }
+        }
+        
+        setInterval(moveCat, 50);
+        
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                jump();
+            }
+        });
+        
+        document.addEventListener('touchstart', jump);
+        
+        function createInitialClouds() {
+            for (let i = 0; i < 3; i++) {
+                createCloud();
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI 樂譜生成器</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: '微軟正黑體', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .button-group {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 25px;
+            margin: 0 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: #4CAF50;
+            color: white;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+        .loading img {
+            width: 50px;
+            height: 50px;
+        }
+        .score-container {
+            text-align: center;
+            margin-top: 20px;
+            min-height: 400px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .score-image {
+            max-width: 100%;
+            height: auto;
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI 樂譜生成器</h1>
+        
+        <div class="button-group">
+            <button onclick="generateMusic('random')" id="btnRandom">隨機風格</button>
+            <button onclick="generateMusic('lyrical')" id="btnLyrical">抒情風格</button>
+            <button onclick="generateMusic('energetic')" id="btnEnergetic">活力風格</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>正在生成樂譜，請稍候...</p>
+        </div>
+
+        <div class="error-message" id="error"></div>
+
+        <div class="score-container">
+            <img id="scoreImage" class="score-image" src="/static/default_score.png" alt="樂譜">
+        </div>
+    </div>
+
+    <script>
+        function setLoading(isLoading) {
+            const buttons = document.querySelectorAll('button');
+            const loading = document.getElementById('loading');
+            
+            buttons.forEach(button => {
+                button.disabled = isLoading;
+            });
+            
+            loading.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            if (message) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.style.display = 'none';
+            }
+        }
+
+        function generateMusic(style) {
+            setLoading(true);
+            showError(null);
+
+            fetch(`/create_music/${style}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const img = new Image();
+                        img.onload = function() {
+                            document.getElementById('scoreImage').src = this.src;
+                            setLoading(false);
+                        };
+                        img.onerror = function() {
+                            showError('圖片載入失敗，請重試');
+                            setLoading(false);
+                        };
+                        img.src = data.image_path;
+                    } else {
+                        showError(data.error || '生成失敗，請重試');
+                        setLoading(false);
+                    }
+                })
+                .catch(error => {
+                    console.error('錯誤：', error);
+                    showError('發生錯誤，請重試');
+                    setLoading(false);
+                });
+        }
+    </script>
+</body>
+</html> 

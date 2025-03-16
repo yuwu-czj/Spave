@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI 動畫生成器</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: '微軟正黑體', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+            margin-bottom: 30px;
+        }
+        .input-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .theme-input {
+            width: 80%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .options {
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .color-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .generate-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .generate-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        .generate-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '生成中'; }
+            40% { content: '生成中.'; }
+            60% { content: '生成中..'; }
+            80% { content: '生成中...'; }
+        }
+        .animation-container {
+            margin-top: 20px;
+            text-align: center;
+            min-height: 400px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .error {
+            color: #dc3545;
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8d7da;
+            border-radius: 5px;
+            display: none;
+        }
+        #animationVideo {
+            max-width: 100%;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI 動畫生成器</h1>
+        
+        <div class="input-section">
+            <input type="text" 
+                   class="theme-input" 
+                   id="themeInput" 
+                   placeholder="請輸入動畫主題（例如：在海邊奔跑的小狗）"
+                   maxlength="100">
+            
+            <div class="options">
+                <div class="color-option">
+                    <input type="radio" id="colorMode" name="colorMode" value="color" checked>
+                    <label for="colorMode">彩色</label>
+                </div>
+                <div class="color-option">
+                    <input type="radio" id="bwMode" name="colorMode" value="bw">
+                    <label for="bwMode">黑白</label>
+                </div>
+            </div>
+
+            <button onclick="generateAnimation()" 
+                    class="generate-btn" 
+                    id="generateBtn">生成動畫</button>
+        </div>
+
+        <div class="loading" id="loading">生成中</div>
+        <div class="error" id="error"></div>
+
+        <div class="animation-container">
+            <video id="animationVideo" controls>
+                您的瀏覽器不支持視頻播放。
+            </video>
+        </div>
+    </div>
+
+    <script>
+        function setLoading(isLoading) {
+            const generateBtn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const themeInput = document.getElementById('themeInput');
+            const colorOptions = document.querySelectorAll('input[name="colorMode"]');
+            
+            generateBtn.disabled = isLoading;
+            themeInput.disabled = isLoading;
+            colorOptions.forEach(option => option.disabled = isLoading);
+            loading.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            if (message) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.style.display = 'none';
+            }
+        }
+
+        function generateAnimation() {
+            const theme = document.getElementById('themeInput').value.trim();
+            if (!theme) {
+                showError('請輸入動畫主題');
+                return;
+            }
+
+            const colorMode = document.querySelector('input[name="colorMode"]:checked').value;
+            const video = document.getElementById('animationVideo');
+            
+            setLoading(true);
+            showError(null);
+            video.style.display = 'none';
+
+            fetch('/generate_animation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    theme: theme,
+                    colorMode: colorMode
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    video.src = data.video_path + '?t=' + new Date().getTime();
+                    video.style.display = 'block';
+                    video.play();
+                } else {
+                    showError(data.error || '生成失敗，請重試');
+                }
+                setLoading(false);
+            })
+            .catch(error => {
+                console.error('錯誤：', error);
+                showError('發生錯誤，請重試');
+                setLoading(false);
+            });
+        }
+    </script>
+</body>
+</html> 

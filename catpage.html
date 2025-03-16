@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咪咪演奏系統</title>
+    <style>
+        /* Music 页面样式 */
+        body {
+            font-family: '微軟正黑體', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .score-section {
+            flex: 1.5;
+            padding-right: 10px;
+            max-width: none;
+            min-width: 300px;
+        }
+        .control-section {
+            flex: 0.8;
+            padding-left: 15px;
+            padding-right: 15px;
+            border-left: 1px solid #eee;
+            min-width: 280px;
+        }
+        #score {
+            width: 100%;
+            min-height: 400px;
+            margin: 20px 0;
+            text-align: center;
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #score img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .button-group {
+            width: 100%;
+            max-width: 250px;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .create-button {
+            width: 100%;
+            background: #2196F3;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            padding: 12px 24px;
+            font-size: 16px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .create-button:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .create-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading {
+            color: #666;
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .music-info {
+            max-width: 250px;
+            margin: 20px auto;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 5px;
+        }
+        .animation-section {
+            flex: 1;
+            position: relative;
+            height: 600px;
+            background: linear-gradient(to bottom, #0a1527, #1a3c6e);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-left: 15px;
+            border-left: 1px solid #eee;
+        }
+        
+        /* 其他 music.html 的样式 */
+        /* ... existing code ... */
+
+        /* 泡泡相关样式 */
+        .bubble-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .bubble {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        .pop-image {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            pointer-events: all;
+            cursor: pointer;
+            z-index: 101;
+        }
+        
+        .pop-image.folder {
+            width: 800px;
+            height: 800px;
+            z-index: 1000;
+            transition: all 0.3s ease-out;
+        }
+        
+        .pop-image.vanish {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .pop-image.fade {
+            animation: float-up 2s ease-out forwards;
+        }
+        
+        @keyframes float-up {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* 散点图相关样式 */
+        .score-chart {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            border: 1px solid #eee;
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .active-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ff4444;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            transform: translate(-50%, 50%);
+            z-index: 3;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        
+        .axis-label {
+            position: absolute;
+            font-size: 12px;
+            color: #666;
+            transition: opacity 0.5s ease;
+        }
+        
+        .x-axis {
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .y-axis {
+            left: 5px;
+            top: 50%;
+            transform: rotate(-90deg) translateX(50%);
+            transform-origin: left center;
+        }
+        
+        .chart-grid {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+        }
+        
+        .grid-line {
+            border-right: 1px solid rgba(102, 102, 102, 0.1);
+            border-bottom: 1px solid rgba(102, 102, 102, 0.1);
+        }
+        
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .download-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            width: fit-content;
+        }
+        
+        .download-button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* 消息框样式 */
+        .message-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+            text-align: center;
+            min-width: 250px;
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        .message-overlay.random-style {
+            background: #000000;
+        }
+
+        .message-overlay.random-style .message-text {
+            color: #ff4444;
+        }
+
+        .message-overlay.lyrical-style {
+            background: #f5f5f5;
+        }
+
+        .message-overlay.lyrical-style .message-text {
+            color: #1a237e;
+        }
+
+        .message-overlay.energetic-style {
+            background: #fff8e1;
+        }
+
+        .message-overlay.energetic-style .message-text {
+            color: #ff8f00;
+        }
+
+        .message-text {
+            font-size: 18px;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .cat-peek .cat-message {
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: 500;
+            background: #f5f5f5;
+            color: #1a237e;
+        }
+
+        .orange-cat .cat-message {
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: 500;
+            background: #fff8e1;
+            color: #ff8f00;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .cat-peek {
+            position: fixed;
+            bottom: -150px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .cat-peek .cat-image {
+            width: 100px;
+            height: 100px;
+            background: url('/static/images/cat_peek.png') no-repeat center;
+            background-size: contain;
+            margin: 0 auto;
+        }
+
+        .cat-peek .cat-message {
+            background: #2196F3;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: 500;
+        }
+
+        .orange-cat {
+            position: fixed;
+            top: -150px;
+            right: 50px;
+            display: none;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .orange-cat .cat-image {
+            width: 100px;
+            height: 100px;
+            background: url('/static/images/orange_cat.png') no-repeat center;
+            background-size: contain;
+            margin: 0 auto;
+        }
+
+        .orange-cat .cat-message {
+            background: #2196F3;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: 500;
+        }
+
+        @keyframes jumpUp {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes peekUp {
+            0% { bottom: -150px; }
+            100% { bottom: 20px; }
+        }
+
+        @keyframes dropDown {
+            0% { top: -150px; }
+            100% { top: 20px; }
+        }
+
+        .scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+            display: block !important;
+            pointer-events: none;
+        }
+        
+        .scene.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+        
+        #defaultScene {
+            background: linear-gradient(to bottom, #0a1527, #1a3c6e);
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 1s infinite alternate;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        .moving-moon {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: #ffd700;
+            border-radius: 50%;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 50px #ffd700;
+            animation: moonFloat 4s ease-in-out infinite;
+        }
+        
+        @keyframes moonFloat {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(20px); }
+        }
+        
+        .waves {
+            position: absolute;
+            width: 100%;
+            height: 40%;
+            bottom: 0;
+            left: 0;
+        }
+        
+        .wave {
+            position: absolute;
+            width: 200%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            left: -50%;
+            animation: wave 8s linear infinite;
+        }
+        
+        .wave:nth-child(2) {
+            animation-delay: -2s;
+            opacity: 0.3;
+        }
+        
+        .wave:nth-child(3) {
+            animation-delay: -4s;
+            opacity: 0.2;
+        }
+        
+        @keyframes wave {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .flame-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .flame {
+            width: 60px;
+            height: 120px;
+            background: linear-gradient(to top, #ff4500, #ffd700);
+            border-radius: 30px 30px 8px 8px;
+            animation: flicker 0.5s ease-in-out infinite alternate;
+            transform-origin: center bottom;
+        }
+        
+        @keyframes flicker {
+            0% { transform: scaleY(1) scaleX(1); }
+            100% { transform: scaleY(1.1) scaleX(0.9); }
+        }
+        
+        .rain-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .umbrella {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .umbrella-top {
+            width: 120px;
+            height: 60px;
+            background: #ff4444;
+            border-radius: 60px 60px 0 0;
+            position: relative;
+        }
+        
+        .umbrella-handle {
+            width: 4px;
+            height: 80px;
+            background: #333;
+            margin: 0 auto;
+        }
+    </style>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="score-section">
+            <div id="score">
+                <!-- 樂譜圖片將在這裡顯示 -->
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <h1>音樂創作系統</h1>
+            <div class="subtitle">
+                全程由 AI 智能生成，打造專屬於您的影音世界
+            </div>
+            
+            <div class="input-group">
+                <div>
+                    <label class="input-label" for="theme">樂曲主題</label>
+                    <input 
+                        type="text" 
+                        id="theme" 
+                        class="input-field" 
+                        placeholder="請輸入樂曲主題（如：春天、海洋、森林）"
+                    >
+                </div>
+                
+                <div class="range-container">
+                    <label class="input-label" for="duration">樂曲長度（秒）</label>
+                    <input 
+                        type="range" 
+                        id="duration" 
+                        class="range-slider" 
+                        min="25" 
+                        max="120" 
+                        step="1"
+                        value="60"
+                    >
+                    <div class="range-value">
+                        當前長度：<span id="durationValue">60</span> 秒
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="create-button" onclick="createMusic('random')">喵~~凹凹~~~</button>
+                <button class="create-button" onclick="createMusic('lyrical')">喵~~凹~嗚~</button>
+                <button class="create-button" onclick="createMusic('energetic')">喵!凹!</button>
+            </div>
+
+            <div id="loading" class="loading">
+                生成樂譜中...
+            </div>
+
+            <div class="music-info">
+                <h3>樂曲分析</h3>
+                <p id="musicStyle"></p>
+                <p id="musicStructure"></p>
+                <p id="musicTheme"></p>
+                <p id="musicDuration"></p>
+            </div>
+        </div>
+
+        <div class="animation-section">
+            <div class="scene" id="defaultScene">
+                <div class="stars"></div>
+                <div class="moving-moon"></div>
+                <div class="waves">
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                </div>
+            </div>
+            <div class="scene" id="randomAnimation">
+                <video loop muted>
+                    <source src="/static/videos/專案 03-15_Full HD 1080p.mp4" type="video/mp4">
+                </video>
+            </div>
+            <div class="scene" id="energeticAnimation">
+                <div class="flame-container">
+                    <div class="flame"></div>
+                    <div class="flame"></div>
+                    <div class="flame"></div>
+                </div>
+            </div>
+            <div class="scene" id="lyricalAnimation">
+                <video loop>
+                    <source src="C:/Project/b26560d4-2762-49ea-b1a9-d78d2766d4f8.mp4" type="video/mp4">
+                </video>
+                <div class="rain-container">
+                    <div class="umbrella">
+                        <div class="umbrella-top"></div>
+                        <div class="umbrella-handle"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加泡泡容器 -->
+    <div id="bubbleContainer" class="bubble-container" style="display: none;"></div>
+
+    <!-- 添加其他必要的元素 -->
+    <div class="message-overlay" id="messageOverlay">
+        <div class="message-text"></div>
+    </div>
+
+    <div class="cat-peek" id="catPeek">
+        <div class="cat-image"></div>
+        <div class="cat-message"></div>
+    </div>
+
+    <div class="orange-cat" id="orangeCat">
+        <div class="cat-image"></div>
+        <div class="cat-message"></div>
+    </div>
+
+    <script>
+        // 泡泡相关的变量和函数
+        const bubbleColors = [
+            'rgba(255, 0, 0, 0.1)',      // 紅
+            'rgba(255, 165, 0, 0.1)',    // 橙
+            'rgba(255, 255, 0, 0.1)',    // 黃
+            'rgba(0, 255, 0, 0.1)',      // 綠
+            'rgba(0, 0, 255, 0.1)',      // 藍
+            'rgba(238, 130, 238, 0.1)',  // 紫
+            'rgba(255, 192, 203, 0.1)',  // 粉
+            'rgba(0, 255, 255, 0.1)',    // 青
+            'rgba(255, 20, 147, 0.1)'    // 桃紅
+        ];
+
+        const images = [
+            './images/image1.png',
+            './images/image2.png',
+            './images/image3.png',
+            './images/image4.png',
+            './images/image5.png',
+            './images/image6.png',
+            './images/image7.png',
+            './images/image8.png',
+            './images/image9.png'
+        ];
+
+        const folderImages = [
+            './folderImages/folder1.png',
+            './folderImages/folder2.png',
+            './folderImages/folder3.png',
+            './folderImages/folder4.png',
+            './folderImages/folder5.png'
+        ];
+
+        class Bubble {
+            constructor() {
+                this.element = document.createElement('div');
+                this.element.className = 'bubble';
+                const size = Math.random() * 70 + 30;
+                this.element.style.width = size + 'px';
+                this.element.style.height = size + 'px';
+                
+                const color = bubbleColors[Math.floor(Math.random() * bubbleColors.length)];
+                this.element.style.background = color;
+                this.element.style.border = `1px solid ${color.replace('0.1', '0.2')}`;
+                this.element.style.backgroundImage = 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 40%, rgba(255,255,255,0) 70%)';
+                
+                this.x = Math.random() * (window.innerWidth - size);
+                this.y = Math.random() * (window.innerHeight - size);
+                this.speedX = (Math.random() - 0.5) * 1;
+                this.speedY = (Math.random() - 0.5) * 1;
+                this.element.addEventListener('click', () => this.pop());
+                document.getElementById('bubbleContainer').appendChild(this.element);
+            }
+            
+            pop() {
+                const img = document.createElement('img');
+                img.className = 'pop-image';
+                img.src = images[Math.floor(Math.random() * images.length)];
+                img.style.left = (this.x + this.element.offsetWidth/2 - 40) + 'px';
+                img.style.top = (this.y + this.element.offsetHeight/2 - 40) + 'px';
+                
+                if (Math.random() < 0.2) {
+                    img.addEventListener('click', function() {
+                        const centerX = (window.innerWidth - 800) / 2;
+                        const centerY = (window.innerHeight - 800) / 2;
+                        
+                        this.style.width = '800px';
+                        this.style.height = '800px';
+                        this.style.left = centerX + 'px';
+                        this.style.top = centerY + 'px';
+                        
+                        this.src = folderImages[Math.floor(Math.random() * folderImages.length)];
+                        this.classList.add('folder');
+                        
+                        setTimeout(() => {
+                            this.classList.add('vanish');
+                            setTimeout(() => this.remove(), 500);
+                        }, 3000);
+                    });
+                } else {
+                    img.classList.add('fade');
+                    setTimeout(() => img.remove(), 2000);
+                }
+                
+                document.getElementById('bubbleContainer').appendChild(img);
+                
+                this.element.remove();
+                const index = bubbles.indexOf(this);
+                if (index > -1) {
+                    bubbles.splice(index, 1);
+                }
+            }
+            
+            move() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x <= 0 || this.x >= window.innerWidth - this.element.offsetWidth) {
+                    this.speedX *= -1;
+                }
+                if (this.y <= 0 || this.y >= window.innerHeight - this.element.offsetHeight) {
+                    this.speedY *= -1;
+                }
+                this.element.style.left = this.x + 'px';
+                this.element.style.top = this.y + 'px';
+            }
+        }
+
+        const bubbles = [];
+
+        // 修改滑块事件监听器
+        window.addEventListener('load', function() {
+            const slider = document.getElementById('duration');
+            const durationValue = document.getElementById('durationValue');
+            const bubbleContainer = document.getElementById('bubbleContainer');
+            const buttons = document.querySelectorAll('.create-button');
+            let bubbleShown = false;
+            let buttonsHidden = false;
+            
+            if (slider && durationValue && bubbleContainer) {
+                durationValue.textContent = slider.value;
+                
+                slider.addEventListener('input', function() {
+                    const duration = parseInt(this.value);
+                    durationValue.textContent = duration;
+                    
+                    // 当滑块达到120秒时，永久隐藏按钮
+                    if (duration >= 120 && !buttonsHidden) {
+                        buttons.forEach(button => {
+                            button.style.transition = 'opacity 0.5s ease-out';
+                            button.style.opacity = '0';
+                            setTimeout(() => {
+                                button.style.display = 'none';
+                            }, 500);
+                        });
+                        buttonsHidden = true;
+                    }
+                    
+                    // 处理泡泡显示
+                    if (duration >= 120 && !bubbleShown) {
+                        bubbleContainer.style.display = 'block';
+                        bubbleShown = true;
+                        
+                        if (bubbles.length === 0) {
+                            const initialBubbles = Math.floor(Math.random() * 11) + 10;
+                            for(let i = 0; i < initialBubbles; i++) {
+                                bubbles.push(new Bubble());
+                            }
+                            
+                            animate();
+                            
+                            setInterval(() => {
+                                if (bubbles.length < 5) {
+                                    bubbles.push(new Bubble());
+                                }
+                                else if (Math.random() < 0.3 && bubbles.length < 30) {
+                                    bubbles.push(new Bubble());
+                                }
+                            }, 5000);
+                        }
+                    }
+                });
+            }
+        });
+
+        function animate() {
+            if (bubbles.length > 0) {
+                bubbles.forEach(bubble => bubble.move());
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // 添加变量来记录第一次点击的时间
+        let startTime = null;
+
+        function createMusic(style) {
+            const scoreDiv = document.getElementById('score');
+            const currentTime = new Date().getTime() / 1000;
+            const duration = parseInt(document.getElementById('duration').value);
+            const theme = document.getElementById('theme').value;
+            
+            if (startTime === null) {
+                startTime = currentTime;
+                
+                // 创建图表容器包装元素
+                const chartWrapper = document.createElement('div');
+                chartWrapper.className = 'chart-container';
+                
+                // 创建图表容器
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'score-chart';
+                
+                // 添加网格
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'chart-grid';
+                for (let i = 0; i < 100; i++) {
+                    const gridLine = document.createElement('div');
+                    gridLine.className = 'grid-line';
+                    gridContainer.appendChild(gridLine);
+                }
+                chartContainer.appendChild(gridContainer);
+                
+                // 添加坐标轴标签
+                const xAxisLabel = document.createElement('div');
+                xAxisLabel.className = 'axis-label x-axis';
+                xAxisLabel.textContent = '實際經過時間（秒）';
+                xAxisLabel.style.opacity = '0';
+                chartContainer.appendChild(xAxisLabel);
+                
+                const yAxisLabel = document.createElement('div');
+                yAxisLabel.className = 'axis-label y-axis';
+                yAxisLabel.textContent = '滑桿秒數 × 按鈕位置';
+                yAxisLabel.style.opacity = '0';
+                chartContainer.appendChild(yAxisLabel);
+                
+                // 将图表容器添加到包装元素中
+                chartWrapper.appendChild(chartContainer);
+                
+                // 清空 score div 并添加包装元素
+                scoreDiv.innerHTML = '';
+                scoreDiv.appendChild(chartWrapper);
+            }
+            
+            // X轴：计算从开始到现在经过的秒数
+            const elapsedSeconds = Math.floor(currentTime - startTime);
+            
+            // 根据按钮类型设置 y 轴基准值
+            let baseY;
+            switch(style) {
+                case 'random':
+                    baseY = 2;
+                    break;
+                case 'lyrical':
+                    baseY = 3;
+                    break;
+                case 'energetic':
+                    baseY = 1;
+                    break;
+            }
+            
+            // Y轴：使用滑块的秒数 * 按钮数值
+            const yPosition = duration * baseY;
+            
+            // 添加新点到图表
+            addPointToChart(elapsedSeconds, yPosition);
+            
+            // 更新音乐信息显示
+            updateMusicInfo(style, theme, duration);
+            
+            // 切换动画
+            switchAnimation(style);
+            
+            // 更新消息显示调用
+            switch(style) {
+                case 'random':
+                    showMessage("救命啊，這是什麼貓不生娃的地方", 'random');
+                    break;
+                case 'lyrical':
+                    showPeekingCat("好餓喵!看看我咪~陪我玩咪咪");
+                    break;
+                case 'energetic':
+                    showOrangeCat("哈囉咪!好新鮮凹!");
+                    playRandomMusic();
+                    break;
+            }
+        }
+
+        // 添加重置图表的函数
+        function resetChart() {
+            startTime = null;
+            const scoreDiv = document.getElementById('score');
+            scoreDiv.innerHTML = '';
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'score-chart';
+            
+            // 添加网格
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'chart-grid';
+            for (let i = 0; i < 100; i++) {
+                const gridLine = document.createElement('div');
+                gridLine.className = 'grid-line';
+                gridContainer.appendChild(gridLine);
+            }
+            chartContainer.appendChild(gridContainer);
+            
+            // 重新添加坐标轴标签
+            const xAxisLabel = document.createElement('div');
+            xAxisLabel.className = 'axis-label x-axis';
+            xAxisLabel.textContent = '實際經過時間（秒）';
+            chartContainer.appendChild(xAxisLabel);
+            
+            const yAxisLabel = document.createElement('div');
+            yAxisLabel.className = 'axis-label y-axis';
+            yAxisLabel.textContent = '滑桿秒數 × 按鈕位置';
+            chartContainer.appendChild(yAxisLabel);
+            
+            scoreDiv.appendChild(chartContainer);
+        }
+
+        // 添加新函数来处理点的添加
+        function addPointToChart(x, y) {
+            const chartContainer = document.querySelector('.score-chart');
+            if (!chartContainer) return;
+            
+            // 修改坐标计算方式
+            const xPercent = Math.min((x / 120) * 100, 100);
+            const yPercent = Math.min((y / 360) * 100, 100);
+            
+            // 创建新点
+            const newPoint = document.createElement('div');
+            newPoint.className = 'active-point';
+            newPoint.style.left = `${xPercent}%`;
+            newPoint.style.bottom = `${yPercent}%`;
+            
+            // 将点添加到图表
+            chartContainer.appendChild(newPoint);
+            
+            // 检查是否达到最右边或最大秒数
+            const duration = parseInt(document.getElementById('duration').value);
+            if (xPercent >= 100 || duration >= 120) {
+                // 显示坐标轴说明
+                const axisLabels = chartContainer.querySelectorAll('.axis-label');
+                axisLabels.forEach(label => {
+                    label.style.opacity = '1';
+                });
+                
+                // 显示下载按钮
+                showDownloadButton(chartContainer);
+            }
+        }
+
+        // 修改显示下载按钮的函数
+        function showDownloadButton(container) {
+            const chartWrapper = container.parentElement;
+            if (chartWrapper.querySelector('.download-button')) return;
+            
+            const downloadButton = document.createElement('button');
+            downloadButton.className = 'download-button';
+            downloadButton.textContent = '下載散布圖';
+            downloadButton.onclick = downloadChart;
+            chartWrapper.appendChild(downloadButton);
+        }
+
+        // 修改下载图表的函数
+        function downloadChart() {
+            const chartContainer = document.querySelector('.score-chart');
+            const theme = document.getElementById('theme').value || '未命名';
+            const timestamp = new Date().toISOString().slice(0, 10);
+            
+            html2canvas(chartContainer).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `喵音符_${theme}_${timestamp}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // 添加消息显示函数
+        function showMessage(text, style = 'random') {
+            const overlay = document.getElementById('messageOverlay');
+            const messageText = overlay.querySelector('.message-text');
+            
+            // 移除所有样式类
+            overlay.classList.remove('random-style', 'lyrical-style', 'energetic-style');
+            // 添加对应的样式类
+            overlay.classList.add(`${style}-style`);
+            
+            messageText.textContent = text;
+            overlay.style.display = 'block';
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 3000);
+        }
+
+        function showPeekingCat(message) {
+            const catPeek = document.getElementById('catPeek');
+            const messageDiv = catPeek.querySelector('.cat-message');
+            
+            messageDiv.textContent = message;
+            catPeek.style.display = 'block';
+            catPeek.style.animation = 'peekUp 0.5s ease-out forwards';
+            
+            setTimeout(() => {
+                catPeek.style.animation = 'none';
+                catPeek.style.bottom = '-150px';
+                catPeek.style.display = 'none';
+            }, 3000);
+        }
+
+        function showOrangeCat(message) {
+            const orangeCat = document.getElementById('orangeCat');
+            const messageDiv = orangeCat.querySelector('.cat-message');
+            
+            messageDiv.textContent = message;
+            orangeCat.style.display = 'block';
+            orangeCat.style.animation = 'dropDown 0.5s ease-out forwards';
+            
+            setTimeout(() => {
+                orangeCat.style.animation = 'none';
+                orangeCat.style.top = '-150px';
+                orangeCat.style.display = 'none';
+            }, 3000);
+        }
+
+        // 音乐播放控制
+        const musicFiles = [
+            '/static/music/cat_fantasy_0.mp3',
+            '/static/music/cat_fantasy_1.mp3',
+            '/static/music/cat_fantasy_2.mp3',
+            '/static/music/cat_fantasy_3.mp3'
+        ];
+
+        let playedMusic = new Set();
+        let currentAudio = null;
+
+        function playRandomMusic() {
+            // 如果所有音乐都播放过了
+            if (playedMusic.size >= musicFiles.length) {
+                const buttons = document.querySelectorAll('.create-button');
+                buttons.forEach(button => {
+                    if (button.textContent === '喵!凹!') {
+                        // 淡出效果
+                        button.style.transition = 'opacity 0.5s ease-out';
+                        button.style.opacity = '0';
+                        setTimeout(() => {
+                            button.style.display = 'none';
+                        }, 500);
+                    }
+                });
+                
+                // 显示完成消息
+                showMessage("我已玩完、旅行完了！");
+                return;
+            }
+
+            // 停止当前播放的音乐
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+
+            // 从未播放的音乐中随机选择
+            let availableMusic = musicFiles.filter(file => !playedMusic.has(file));
+            let randomIndex = Math.floor(Math.random() * availableMusic.length);
+            let selectedMusic = availableMusic[randomIndex];
+
+            // 创建新的音频元素
+            currentAudio = new Audio(selectedMusic);
+            currentAudio.volume = 0.5; // 设置音量为 50%
+            
+            // 播放完成后的处理
+            currentAudio.onended = () => {
+                currentAudio = null;
+            };
+
+            // 记录已播放的音乐
+            playedMusic.add(selectedMusic);
+
+            // 播放音乐
+            currentAudio.play().catch(err => console.log('音乐播放失败:', err));
+        }
+
+        // 添加动画切换函数
+        function switchAnimation(style) {
+            const scenes = document.querySelectorAll('.scene');
+            const currentActive = document.querySelector('.scene.active');
+            
+            // 移除当前活动场景
+            if (currentActive) {
+                currentActive.classList.remove('active');
+            }
+
+            // 停止所有视频播放
+            document.querySelectorAll('video').forEach(video => {
+                video.pause();
+                video.currentTime = 0;
+            });
+
+            // 设置新的活动场景
+            let targetScene;
+            switch(style) {
+                case 'lyrical':
+                    targetScene = document.getElementById('lyricalAnimation');
+                    const lyricalVideo = targetScene.querySelector('video');
+                    if (lyricalVideo) {
+                        lyricalVideo.play().catch(err => console.log('视频播放失败:', err));
+                    }
+                    break;
+                case 'random':
+                    targetScene = document.getElementById('randomAnimation');
+                    const randomVideo = targetScene.querySelector('video');
+                    if (randomVideo) {
+                        randomVideo.play().catch(err => console.log('视频播放失败:', err));
+                    }
+                    break;
+                case 'energetic':
+                    targetScene = document.getElementById('energeticAnimation');
+                    break;
+                default:
+                    targetScene = document.getElementById('defaultScene');
+            }
+
+            if (targetScene) {
+                targetScene.classList.add('active');
+            }
+        }
+
+        // 添加更新音乐信息的函数
+        function updateMusicInfo(style, theme, duration) {
+            const musicInfo = {
+                random: '隨機風格',
+                lyrical: '抒情風格',
+                energetic: '活力風格'
+            };
+            
+            document.getElementById('musicStyle').textContent = `風格：${musicInfo[style]}`;
+            document.getElementById('musicTheme').textContent = `主題：${theme || '未指定'}`;
+            document.getElementById('musicDuration').textContent = `長度：${duration} 秒`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI 圖片生成器</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: '微軟正黑體', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+            margin-bottom: 30px;
+        }
+        .input-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .prompt-input {
+            width: 80%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .generate-btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .generate-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        .generate-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #666;
+        }
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '生成中'; }
+            40% { content: '生成中.'; }
+            60% { content: '生成中..'; }
+            80% { content: '生成中...'; }
+        }
+        .image-container {
+            margin-top: 20px;
+            text-align: center;
+            min-height: 400px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .generated-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: none;
+        }
+        .error {
+            color: #dc3545;
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8d7da;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI 圖片生成器</h1>
+        
+        <div class="input-section">
+            <input type="text" 
+                   class="prompt-input" 
+                   id="promptInput" 
+                   placeholder="請輸入圖片描述（例如：在海邊奔跑的小狗）"
+                   maxlength="100">
+            
+            <button onclick="generateImage()" 
+                    class="generate-btn" 
+                    id="generateBtn">生成圖片</button>
+        </div>
+
+        <div class="loading" id="loading">生成中</div>
+        <div class="error" id="error"></div>
+
+        <div class="image-container">
+            <img id="generatedImage" 
+                 class="generated-image" 
+                 alt="生成的圖片"
+                 onerror="handleImageError()">
+        </div>
+    </div>
+
+    <script>
+        function setLoading(isLoading) {
+            const generateBtn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const promptInput = document.getElementById('promptInput');
+            
+            generateBtn.disabled = isLoading;
+            promptInput.disabled = isLoading;
+            loading.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            if (message) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.style.display = 'none';
+            }
+        }
+
+        function handleImageError() {
+            showError('圖片載入失敗，請重試');
+            setLoading(false);
+            document.getElementById('generatedImage').style.display = 'none';
+        }
+
+        function generateImage() {
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) {
+                showError('請輸入圖片描述');
+                return;
+            }
+
+            setLoading(true);
+            showError(null);
+            document.getElementById('generatedImage').style.display = 'none';
+
+            fetch('/generate_image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    prompt: prompt
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const img = document.getElementById('generatedImage');
+                    img.src = data.image_path + '?t=' + new Date().getTime();
+                    img.style.display = 'block';
+                } else {
+                    showError(data.error || '生成失敗，請重試');
+                }
+                setLoading(false);
+            })
+            .catch(error => {
+                console.error('錯誤：', error);
+                showError('發生錯誤，請重試');
+                setLoading(false);
+            });
+        }
+    </script>
+</body>
+</html> 
